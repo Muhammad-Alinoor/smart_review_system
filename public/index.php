@@ -5,7 +5,6 @@
  */
 
 require_once '../config/db.php';
-require_once '../functions/compute_score.php';
 
 // Get top trending items
 $stmt = $pdo->prepare("
@@ -40,7 +39,9 @@ $trending_items = $stmt->fetchAll();
         <div class="container">
             <h1 class="logo">📱 Smart Review System</h1>
             <div class="nav-links">
+                <a href="feed.php">Review Feed</a>
                 <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="create_post.php" class="btn btn-primary">+ Post Review</a>
                     <span>Welcome, <?php echo htmlspecialchars($_SESSION['name']); ?>!</span>
                     <a href="../auth/logout.php" class="btn btn-secondary">Logout</a>
                 <?php else: ?>

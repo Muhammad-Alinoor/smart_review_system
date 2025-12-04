@@ -228,3 +228,192 @@ INSERT INTO likes (review_id, user_id, like_type) VALUES
 -- Initialize scores table (will be computed by compute_score function)
 INSERT INTO scores (item_id, score_value) VALUES
 (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0);
+-- User Posts Feature Migration
+-- Run this after initial database setup
+-- This adds support for user-created posts about any product
+
+-- Add categories table for organizing posts
+CREATE TABLE IF NOT EXISTS categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    parent_id INT DEFAULT NULL,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_parent (parent_id),
+    INDEX idx_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add user_posts table for freeform product reviews/posts
+CREATE TABLE IF NOT EXISTS user_posts (
+    post_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    category_id INT,
+    product_name VARCHAR(200) NOT NULL,
+    rating DECIMAL(2,1) NOT NULL CHECK (rating BETWEEN 1.0 AND 5.0),
+    post_text TEXT NOT NULL,
+    tags VARCHAR(500),
+    sentiment_score FLOAT DEFAULT 0,
+    is_verified BOOLEAN DEFAULT FALSE,
+    view_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
+    INDEX idx_user (user_id),
+    INDEX idx_category (category_id),
+    INDEX idx_rating (rating),
+    INDEX idx_created (created_at DESC),
+    FULLTEXT idx_search (product_name, post_text, tags)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add post_images table for photo carousel
+CREATE TABLE IF NOT EXISTS post_images (
+    image_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    caption VARCHAR(200),
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES user_posts(post_id) ON DELETE CASCADE,
+    INDEX idx_post (post_id),
+    INDEX idx_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add post_likes table for thumbs up/down
+CREATE TABLE IF NOT EXISTS post_likes (
+    like_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    like_type TINYINT NOT NULL COMMENT '1=like, -1=dislike',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES user_posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_post (user_id, post_id),
+    INDEX idx_post (post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add post_comments table
+CREATE TABLE IF NOT EXISTS post_comments (
+    comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    parent_comment_id INT DEFAULT NULL,
+    comment_text TEXT NOT NULL,
+    rating DECIMAL(2,1) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES user_posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_comment_id) REFERENCES post_comments(comment_id) ON DELETE CASCADE,
+    INDEX idx_post (post_id),
+    INDEX idx_parent (parent_comment_id),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add comment_likes table
+CREATE TABLE IF NOT EXISTS comment_likes (
+    like_id INT AUTO_INCREMENT PRIMARY KEY,
+    comment_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (comment_id) REFERENCES post_comments(comment_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_comment (user_id, comment_id),
+    INDEX idx_comment (comment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add community insights table (aggregated data)
+CREATE TABLE IF NOT EXISTS community_insights (
+    insight_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(200) NOT NULL,
+    positive_keywords JSON,
+    negative_keywords JSON,
+    common_praise TEXT,
+    common_complaints TEXT,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_product (product_name),
+    INDEX idx_product (product_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert seed categories
+INSERT INTO categories (category_id, parent_id, name, slug) VALUES
+(1, NULL, 'Electronics', 'electronics'),
+(2, 1, 'Smartphone', 'smartphone'),
+(3, 1, 'Laptop', 'laptop'),
+(4, 1, 'Tablet', 'tablet'),
+(5, 1, 'Smartwatch', 'smartwatch'),
+(6, NULL, 'Home Appliances', 'home-appliances'),
+(7, 6, 'Refrigerator', 'refrigerator'),
+(8, 6, 'Air Conditioner', 'air-conditioner'),
+(9, NULL, 'Fashion', 'fashion'),
+(10, NULL, 'Books', 'books');
+
+-- Insert seed user posts
+INSERT INTO user_posts (user_id, category_id, product_name, rating, post_text, tags, sentiment_score, is_verified) VALUES
+(1, 2, 'Samsung Galaxy A55 5G', 4.0, 
+'The camera quality is excellent, especially in daylight. Battery lasts easily for one full day. However, charging speed could be faster.',
+'#Camera #Battery #MidRange', 0.6, TRUE),
+
+(2, 2, 'Redmi Note 13', 4.3,
+'Amazing value for money! Display is vibrant and performance is smooth. Gaming experience is good but heats up a bit.',
+'#Budget #Gaming #Display', 0.7, TRUE),
+
+(3, 2, 'Vivo V30 Lite', 4.0,
+'Great selfie camera! Design is sleek and premium. Battery life is decent but not exceptional.',
+'#Selfie #Design #Camera', 0.5, FALSE),
+
+(4, 3, 'MacBook Air M2', 4.8,
+'Incredible performance and battery life! Silent operation is a huge plus. Perfect for developers and content creators.',
+'#Performance #Battery #Professional', 0.9, TRUE),
+
+(5, 5, 'Apple Watch Series 9', 4.5,
+'Health tracking is accurate. Battery lasts 2 days. Fitness features are comprehensive. A bit expensive though.',
+'#Fitness #Health #Premium', 0.65, TRUE);
+
+-- Insert post likes
+INSERT INTO post_likes (post_id, user_id, like_type) VALUES
+(1, 2, 1), (1, 3, 1), (1, 4, 1), (1, 5, -1),
+(2, 1, 1), (2, 3, 1), (2, 5, 1),
+(3, 1, 1), (3, 2, 1), (3, 4, -1),
+(4, 1, 1), (4, 2, 1), (4, 3, 1), (4, 5, 1),
+(5, 2, 1), (5, 3, 1), (5, 4, 1);
+
+-- Insert post comments
+INSERT INTO post_comments (post_id, user_id, comment_text, rating) VALUES
+(1, 2, 'Totally agree! Camera is solid for this price.', 4.0),
+(1, 3, 'Mine heats up after long gaming 😅', NULL),
+(2, 1, 'How is the MIUI experience? Any bloatware?', NULL),
+(2, 4, 'MIUI is better now, minimal bloat if you choose carefully', NULL),
+(3, 5, 'Front camera quality is really impressive', 4.5),
+(4, 2, 'Is 8GB RAM enough for video editing?', NULL),
+(5, 1, 'Battery life claim is accurate! Love it', 5.0);
+
+-- Insert comment likes
+INSERT INTO comment_likes (comment_id, user_id) VALUES
+(1, 1), (1, 3), (1, 4), (1, 5),
+(2, 1), (2, 4),
+(3, 2), (3, 5),
+(5, 1), (5, 2), (5, 3);
+
+-- Insert community insights
+INSERT INTO community_insights (product_name, positive_keywords, negative_keywords, common_praise, common_complaints) VALUES
+('Samsung Galaxy A55 5G', 
+ '["camera", "battery", "display", "performance"]',
+ '["charging", "heating", "price"]',
+ 'Great camera quality and good battery life',
+ 'Slow charging speed'),
+ 
+('Redmi Note 13',
+ '["value", "display", "performance", "gaming"]',
+ '["heating", "MIUI", "bloatware"]',
+ 'Excellent value for money with great display',
+ 'Device heating during gaming');
+
+-- Add view tracking trigger
+DELIMITER //
+CREATE TRIGGER IF NOT EXISTS increment_post_views
+AFTER INSERT ON post_comments
+FOR EACH ROW
+BEGIN
+    UPDATE user_posts SET view_count = view_count + 1 WHERE post_id = NEW.post_id;
+END//
+DELIMITER ;
