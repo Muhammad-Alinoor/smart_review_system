@@ -64,6 +64,11 @@ try {
     <div class="container feed-container">
         <div class="feed-header">
             <h1>📱 Product Reviews Feed</h1>
+            <div class="feed-search-box">
+                <input type="text" id="feedSearchInput" placeholder="Search posts by product, tags, or content..." 
+                       onkeypress="if(event.key==='Enter') searchFeed()">
+                <button onclick="searchFeed()" class="btn btn-primary">🔍</button>
+            </div>
             <div class="feed-filters">
                 <select id="categoryFilter" onchange="loadFeed()">
                     <option value="">All Categories</option>
