@@ -5,6 +5,11 @@
  */
 
 // Database configuration constants
+$db_host = 'sql100.infinityfree.com';   // copy from control panel
+$db_user = 'if0_40599396';
+$db_pass = 'To8xxPTJoH8';
+$db_name = 'if0_40599396_smart_review_system';
+
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'smart_review_system');
 define('DB_USER', 'root');

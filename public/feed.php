@@ -113,22 +113,46 @@ try {
             
             document.getElementById('loadingFeed').style.display = 'block';
             document.getElementById('feedContent').innerHTML = '';
+            document.getElementById('noPostsMessage').style.display = 'none';
 
             try {
                 const response = await fetch(`../api/get_feed.php?category=${category}&sort=${sort}`);
-                const data = await response.json();
+                const text = await response.text();
+                
+                // Try to parse JSON
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text);
+                    document.getElementById('loadingFeed').style.display = 'none';
+                    showMessage('Server returned invalid response. Check console for details.', 'error');
+                    return;
+                }
 
                 document.getElementById('loadingFeed').style.display = 'none';
 
-                if (data.success && data.posts.length > 0) {
+                if (data.success && data.posts && data.posts.length > 0) {
                     displayPosts(data.posts);
                     document.getElementById('noPostsMessage').style.display = 'none';
+                } else if (!data.success) {
+                    document.getElementById('noPostsMessage').innerHTML = `
+                        <p>${escapeHtml(data.message || 'Failed to load feed')}</p>
+                        ${data.error ? `<pre style="text-align: left; background: #f8f9fa; padding: 10px; border-radius: 5px;">${escapeHtml(data.error)}</pre>` : ''}
+                    `;
+                    document.getElementById('noPostsMessage').style.display = 'block';
                 } else {
                     document.getElementById('noPostsMessage').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Load feed error:', error);
-                showMessage('Failed to load feed', 'error');
+                document.getElementById('loadingFeed').style.display = 'none';
+                document.getElementById('noPostsMessage').innerHTML = `
+                    <p>Failed to load feed</p>
+                    <p style="color: #e74c3c;">${escapeHtml(error.message)}</p>
+                    <p><a href="../setup_user_posts.php" class="btn btn-primary">Run Setup</a></p>
+                `;
+                document.getElementById('noPostsMessage').style.display = 'block';
             }
         }
 
@@ -145,7 +169,12 @@ try {
             const card = document.createElement('div');
             card.className = 'post-card';
             
-            const stars = '⭐'.repeat(Math.floor(post.rating)) + (post.rating % 1 >= 0.5 ? '½' : '');
+            // Convert rating to number and handle half stars
+            const rating = parseFloat(post.rating) || 0;
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = (rating % 1) >= 0.5;
+            const stars = '⭐'.repeat(fullStars) + (hasHalfStar ? '½' : '');
+            
             const timeAgo = formatDate(post.created_at);
             const tags = post.tags ? post.tags.split(' ').map(tag => 
                 `<span class="post-tag">${escapeHtml(tag)}</span>`
@@ -164,7 +193,7 @@ try {
                     <div class="post-product-header">
                         <h2 class="post-product-name">📱 ${escapeHtml(post.product_name)}</h2>
                         <div class="post-rating">
-                            ${stars} (${post.rating.toFixed(1)})
+                            ${stars} (${rating.toFixed(1)})
                         </div>
                     </div>
                     
@@ -182,14 +211,14 @@ try {
                     <div class="post-actions">
                         <button class="post-action-btn ${post.user_like === 1 ? 'active' : ''}" 
                                 onclick="togglePostLike(${post.post_id}, 1)" ${!isLoggedIn ? 'disabled' : ''}>
-                            👍 <span id="likes_${post.post_id}">${post.likes}</span>
+                            👍 <span id="likes_${post.post_id}">${post.likes || 0}</span>
                         </button>
                         <button class="post-action-btn ${post.user_like === -1 ? 'active' : ''}" 
                                 onclick="togglePostLike(${post.post_id}, -1)" ${!isLoggedIn ? 'disabled' : ''}>
-                            👎 <span id="dislikes_${post.post_id}">${post.dislikes}</span>
+                            👎 <span id="dislikes_${post.post_id}">${post.dislikes || 0}</span>
                         </button>
                         <a href="post_view.php?id=${post.post_id}" class="post-action-btn">
-                            💬 ${post.comment_count}
+                            💬 ${post.comment_count || 0}
                         </a>
                         <button class="post-action-btn" onclick="sharePost(${post.post_id})">
                             🔗 Share
@@ -200,8 +229,8 @@ try {
                     <div class="community-insight">
                         <div class="insight-header">🧠 Community Insight:</div>
                         <div class="insight-content">
-                            <p>${post.insight_praise || 'Loading insights...'}</p>
-                            ${post.insight_complaint ? `<p class="insight-complaint">${post.insight_complaint}</p>` : ''}
+                            <p>${escapeHtml(post.insight_praise || 'Loading insights...')}</p>
+                            ${post.insight_complaint ? `<p class="insight-complaint">${escapeHtml(post.insight_complaint)}</p>` : ''}
                         </div>
                         <a href="post_view.php?id=${post.post_id}" class="insight-expand">[View full review]</a>
                     </div>
