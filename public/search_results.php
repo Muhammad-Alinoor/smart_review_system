@@ -91,29 +91,54 @@ $query = htmlspecialchars($_GET['q'] ?? '');
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 
+                // Check if it's a user post or original item
+                const isPost = item.result_type === 'post';
+                const itemUrl = isPost ? `post_view.php?id=${item.post_id}` : `item.php?id=${item.item_id}`;
+                
                 let metaBadges = '';
                 if (item.metadata) {
-                    metaBadges = `
-                        <span class="badge">${escapeHtml(item.metadata.brand)}</span>
-                        <span class="badge">$${escapeHtml(item.metadata.price)}</span>
-                    `;
+                    if (isPost) {
+                        // User post metadata
+                        metaBadges = `
+                            <span class="badge">by ${escapeHtml(item.metadata.author)}</span>
+                            ${item.metadata.verified === 'Yes' ? '<span class="badge">✅ Verified</span>' : ''}
+                        `;
+                    } else {
+                        // Original item metadata
+                        metaBadges = `
+                            <span class="badge">${escapeHtml(item.metadata.brand || '')}</span>
+                            <span class="badge">${escapeHtml(item.metadata.price || '')}</span>
+                        `;
+                    }
+                }
+
+                // Display tags if available
+                let tagsHtml = '';
+                if (item.tags) {
+                    const tags = item.tags.split(' ').slice(0, 3); // Show first 3 tags
+                    tagsHtml = '<div class="item-tags">' + 
+                        tags.map(tag => `<span class="post-tag">${escapeHtml(tag)}</span>`).join('') + 
+                        '</div>';
                 }
 
                 card.innerHTML = `
-                    <div class="compare-checkbox">
-                        <input type="checkbox" id="compare_${item.item_id}" 
-                               onchange="toggleCompare(${item.item_id})">
-                        <label for="compare_${item.item_id}">Compare</label>
+                    ${isPost ? '<div class="result-type-badge">User Review</div>' : '<div class="result-type-badge official">Official Item</div>'}
+                    <div class="compare-checkbox" style="display: ${isPost ? 'none' : 'block'}">
+                        <input type="checkbox" id="compare_${item.item_id || item.post_id}" 
+                               onchange="toggleCompare(${item.item_id || item.post_id})"
+                               ${isPost ? 'disabled' : ''}>
+                        <label for="compare_${item.item_id || item.post_id}">Compare</label>
                     </div>
                     <h3>${escapeHtml(item.title)}</h3>
                     <p class="item-description">${escapeHtml(item.description.substring(0, 100))}...</p>
                     <div class="item-meta">${metaBadges}</div>
+                    ${tagsHtml}
                     <div class="item-stats">
                         <div class="rating">⭐ ${item.avg_rating}/5</div>
-                        <div class="score">Score: <strong>${item.score.toFixed(1)}</strong></div>
-                        <div class="reviews">${item.review_count} reviews</div>
+                        <div class="score">Score: <strong>${parseFloat(item.score).toFixed(1)}</strong></div>
+                        <div class="reviews">${item.review_count} ${isPost ? 'comments' : 'reviews'}</div>
                     </div>
-                    <a href="item.php?id=${item.item_id}" class="btn btn-primary btn-block">View Details</a>
+                    <a href="${itemUrl}" class="btn btn-primary btn-block">View Details</a>
                 `;
                 container.appendChild(card);
             });
