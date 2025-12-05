@@ -294,6 +294,47 @@ try {
             }
         }
 
+        function searchFeed() {
+            const query = document.getElementById('feedSearchInput').value.trim();
+            if (query) {
+                // Clear filters when searching
+                document.getElementById('categoryFilter').value = '';
+                document.getElementById('sortFilter').value = 'recent';
+                
+                // Load search results
+                loadSearchResults(query);
+            } else {
+                loadFeed();
+            }
+        }
+
+        async function loadSearchResults(query) {
+            document.getElementById('loadingFeed').style.display = 'block';
+            document.getElementById('feedContent').innerHTML = '';
+
+            try {
+                const response = await fetch(`../api/search_posts.php?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                document.getElementById('loadingFeed').style.display = 'none';
+
+                if (data.success && data.results && data.results.length > 0) {
+                    displayPosts(data.results);
+                    document.getElementById('noPostsMessage').style.display = 'none';
+                } else {
+                    document.getElementById('noPostsMessage').innerHTML = 
+                        `<p>No posts found for "${escapeHtml(query)}"</p>
+                         <button onclick="document.getElementById('feedSearchInput').value=''; loadFeed();" class="btn btn-primary">
+                            Clear Search
+                         </button>`;
+                    document.getElementById('noPostsMessage').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                showMessage('Search failed', 'error');
+            }
+        }
+
         // Load feed on page load
         loadFeed();
     </script>
