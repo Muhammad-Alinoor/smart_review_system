@@ -679,11 +679,23 @@ footer {
 
 .feed-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 2rem 0;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 1rem;
+    margin: 2rem 0;
+}
+
+.feed-search-box {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 600px;
+}
+
+.feed-search-box input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
 }
 
 .feed-filters {
