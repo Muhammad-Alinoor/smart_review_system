@@ -50,8 +50,11 @@ try {
     $items = $stmt->fetchAll();
     
     foreach ($items as $item) {
+        // ENSURE all required fields are present
+        $item['item_id'] = (int)$item['item_id']; // CRITICAL: Must have item_id
         $item['avg_rating'] = round((float)$item['avg_rating'], 1);
         $item['score'] = round((float)$item['score'], 2);
+        $item['result_type'] = 'item'; // CRITICAL: Must be 'item'
         
         if (!empty($item['metadata_json'])) {
             $item['metadata'] = json_decode($item['metadata_json'], true);
@@ -100,9 +103,12 @@ try {
         $posts = $stmt->fetchAll();
         
         foreach ($posts as $post) {
+            // ENSURE all required fields are present
+            $post['post_id'] = (int)$post['post_id']; // CRITICAL: Must have post_id
             $post['avg_rating'] = round((float)$post['avg_rating'], 1);
             $post['score'] = (float)$post['score'];
             $post['review_count'] = (int)$post['review_count'];
+            $post['result_type'] = 'post'; // CRITICAL: Must be 'post'
             
             // Truncate description for search results
             if (strlen($post['description']) > 150) {

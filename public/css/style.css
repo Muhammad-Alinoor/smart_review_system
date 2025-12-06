@@ -165,13 +165,29 @@ body {
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
     position: relative;
+    border: 2px solid transparent;
 }
 
 .item-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.item-card.selected-for-compare {
+    border: 2px solid #3498db;
+    background: #f0f8ff;
+}
+
+.item-card.selected-for-compare .compare-checkbox {
+    background: #3498db;
+    color: white;
+}
+
+.item-card.selected-for-compare .compare-checkbox label {
+    color: white;
+    font-weight: bold;
 }
 
 .result-type-badge {
@@ -239,11 +255,42 @@ body {
 
 /* Compare Checkbox */
 .compare-checkbox {
-    margin-bottom: 1rem;
+    margin-bottom: 1rem !important;
+    padding: 0.75rem !important;
+    background: #f8f9fa !important;
+    border-radius: 5px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.compare-checkbox input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+.compare-checkbox label {
+    cursor: pointer !important;
+    margin: 0 !important;
+    font-weight: 500 !important;
+    color: #2c3e50 !important;
+    user-select: none !important;
+    display: inline-block !important;
+}
+
+.compare-checkbox:hover {
+    background: #e9ecef !important;
 }
 
 .compare-section {
     margin: 1rem 0;
+    text-align: center;
 }
 
 /* Auth Forms */
@@ -542,6 +589,26 @@ body {
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.compare-type-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.compare-type-badge.user-review {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.compare-type-badge.official-item {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 
 .compare-stats {

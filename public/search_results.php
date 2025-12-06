@@ -59,6 +59,69 @@ $query = htmlspecialchars($_GET['q'] ?? '');
     <script>
         const selectedItems = new Set();
 
+        // Make toggleCompare globally accessible
+        window.toggleCompare = function(itemId, type) {
+            const key = type + '_' + itemId;
+            const checkbox = document.getElementById(`compare_${itemId}`);
+            
+            console.log('toggleCompare called:', {itemId, type, key, checked: checkbox?.checked}); // Debug
+            
+            if (!checkbox) {
+                console.error('Checkbox not found for ID:', itemId);
+                return;
+            }
+            
+            const card = checkbox.closest('.item-card');
+            
+            if (checkbox.checked) {
+                // Checkbox was just checked
+                if (selectedItems.size >= 2) {
+                    showMessage('You can only compare 2 items at a time. Uncheck one first.', 'error');
+                    checkbox.checked = false;
+                    return;
+                }
+                selectedItems.add(key);
+                if (card) card.classList.add('selected-for-compare');
+            } else {
+                // Checkbox was just unchecked
+                selectedItems.delete(key);
+                if (card) card.classList.remove('selected-for-compare');
+            }
+
+            // Update compare button visibility
+            const compareSection = document.getElementById('compareSection');
+            if (selectedItems.size === 2) {
+                compareSection.style.display = 'block';
+            } else {
+                compareSection.style.display = 'none';
+            }
+            
+            console.log('Selected items:', Array.from(selectedItems)); // Debug
+            console.log('Compare button visible:', selectedItems.size === 2); // Debug
+        };
+
+        // Make compareSelected globally accessible
+        window.compareSelected = function() {
+            console.log('compareSelected called, selected items:', Array.from(selectedItems)); // Debug
+            
+            if (selectedItems.size !== 2) {
+                showMessage('Please select exactly 2 items to compare', 'error');
+                return;
+            }
+
+            const items = Array.from(selectedItems);
+            console.log('Comparing:', items); // Debug
+            
+            // Items are already in format "type_id"
+            const a = items[0];
+            const b = items[1];
+
+            // Universal comparison - works with any combination
+            const url = `compare_universal.php?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`;
+            console.log('Navigating to:', url); // Debug
+            window.location.href = url;
+        };
+
         async function loadSearchResults() {
             const query = '<?php echo addslashes($query); ?>';
             if (!query) {
